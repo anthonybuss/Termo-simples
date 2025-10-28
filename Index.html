@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Termo Simples</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: #121213;
+    color: #fff;
+    margin: 0;
+    padding: 20px;
+  }
+  h1 { margin-top: 10px; }
+  input, textarea {
+    text-transform: uppercase;
+    font-size: 18px;
+    padding: 8px;
+    width: 250px;
+    margin-top: 8px;
+    border-radius: 6px;
+    border: 1px solid #333;
+    outline: none;
+  }
+  textarea {
+    text-transform: none;
+    font-size: 16px;
+    height: 60px;
+  }
+  button {
+    font-size: 16px;
+    padding: 8px 12px;
+    margin-top: 10px;
+    cursor: pointer;
+    border-radius: 6px;
+    border: none;
+    background-color: #538d4e;
+    color: white;
+  }
+  button:hover {
+    background-color: #6aaa64;
+  }
+  .grid {
+    display: grid;
+    gap: 5px;
+    justify-content: center;
+    margin-top: 20px;
+  }
+  .cell {
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #555;
+    text-transform: uppercase;
+  }
+  .correct { background: #538d4e; }
+  .present { background: #b59f3b; }
+  .absent { background: #3a3a3c; }
+  .share, .message-box {
+    margin-top: 20px;
+    display: none;
+  }
+  .message-box {
+    font-size: 18px;
+    color: #ffd700;
+    border-top: 1px solid #444;
+    padding-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Termo Simples 🎯</h1>
+
+<div id="setup">
+  <p>Escolha uma palavra e uma mensagem secreta:</p>
+  <input id="wordInput" maxlength="10" placeholder="PALAVRA"><br>
+  <textarea id="messageInput" placeholder="Mensagem (ex: Parabéns!)"></textarea><br>
+  <button id="generateBtn">Gerar Link</button>
+  <p id="linkResult"></p>
+</div>
+
+<div id="game" style="display:none;">
+  <p>Tente adivinhar a palavra!</p>
+  <input id="guessInput" placeholder="Tentativa">
+  <button id="guessBtn">Enviar</button>
+  <div id="board" class="grid"></div>
+  <div id="share" class="share">
+    <p>Parabéns! Copie seu resultado:</p>
+    <textarea id="shareText" rows="4" cols="30" readonly></textarea><br>
+    <button onclick="navigator.clipboard.writeText(document.getElementById('shareText').value)">Copiar</button>
+  </div>
+  <div id="messageBox" class="message-box"></div>
+</div>
+
+<script>
+function encodeBase64(txt) {
+  return btoa(unescape(encodeURIComponent(txt)));
+}
+function decodeBase64(txt) {
+  try { return decodeURIComponent(escape(atob(txt))); } catch { return null; }
+}
+
+const params = new URLSearchParams(window.location.search);
+const encodedWord = params.get("p");
+const encodedMsg = params.get("m");
+
+if (encodedWord) {
+  const secret = decodeBase64(encodedWord);
+  const message = encodedMsg ? decodeBase64(encodedMsg) : "";
+  if (secret) {
+    document.getElementById("setup").style.display = "none";
+    const game = document.getElementById("game");
+    game.style.display = "block";
+    const board = document.getElementById("board");
+    const input = document.getElementById("guessInput");
+    const button = document.getElementById("guessBtn");
+    const msgBox = document.getElementById("messageBox");
+    let attempts = [];
+    const max = 6;
+
+    button.onclick = () => {
+      const guess = input.value.toUpperCase();
+      if (guess.length !== secret.length) {
+        alert(`A palavra tem ${secret.length} letras!`);
+        return;
+      }
+      const row = document.createElement("div");
+      row.style.display = "grid";
+      row.style.gridTemplateColumns = `repeat(${secret.length}, 50px)`;
+      for (let i = 0; i < secret.length; i++) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        cell.textContent = guess[i];
+        if (guess[i] === secret[i]) cell.classList.add("correct");
+        else if (secret.includes(guess[i])) cell.classList.add("present");
+        else cell.classList.add("absent");
+        row.appendChild(cell);
+      }
+      board.appendChild(row);
+      input.value = "";
+      attempts.push(guess);
+      if (guess === secret) {
+        document.getElementById("share").style.display = "block";
+        const text = `Adivinhei "${secret}" em ${attempts.length} tentativas! 🟩🟨⬛`;
+        document.getElementById("shareText").value = text;
+        msgBox.style.display = "block";
+        msgBox.textContent = message ? message : "Parabéns, você acertou!";
+        button.disabled = true;
+      } else if (attempts.length >= max) {
+        alert(`Você perdeu! A palavra era ${secret}.`);
+        button.disabled = true;
+      }
+    };
+  }
+}
+
+document.getElementById("generateBtn").onclick = () => {
+  const word = document.getElementById("wordInput").value.trim().toUpperCase();
+  const message = document.getElementById("messageInput").value.trim();
+  if (!word) return alert("Digite uma palavra!");
+  const url = `${window.location.origin}${window.location.pathname}?p=${encodeBase64(word)}&m=${encodeBase64(message)}`;
+  document.getElementById("linkResult").innerHTML = `
+    Link gerado:<br>
+    <a href="${url}" target="_blank">${url}</a><br><br>
+    Copie e envie no WhatsApp!`;
+};
+</script>
+
+</body>
+</html>
